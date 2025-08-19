@@ -10,21 +10,7 @@ import (
 	"tidbyt.dev/pixlet/runtime"
 )
 
-const PublicKeysetJSON = `{
-  "primaryKeyId": 1589560679,
-  "key": [
-    {
-      "keyData": {
-        "typeUrl": "type.googleapis.com/google.crypto.tink.EciesAeadHkdfPublicKey",
-        "value": "ElwKBAgCEAMSUhJQCjh0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNDdHJIbWFjQWVhZEtleRISCgYKAggQEBASCAoECAMQEBAgGAEYARogLGtas20og5yP8/g9mCNLNCWTDeLUdcHH7o9fbzouOQoiIBIth4hdVF5A2sztwfW+hNoZ0ht/HNH3dDTEBPW3GXA2",
-        "keyMaterialType": "ASYMMETRIC_PUBLIC"
-      },
-      "status": "ENABLED",
-      "keyId": 1589560679,
-      "outputPrefixType": "TINK"
-    }
-  ]
-}`
+const PublicKeysetJSON = `{"primaryKeyId":3245420378,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.HpkePublicKey","value":"EgYIARABGAIaIBypDO7WQjqksjF8V6Yb6H5+ELre3YVX28wKAuPjiFtJ","keyMaterialType":"ASYMMETRIC_PUBLIC"},"status":"ENABLED","keyId":3245420378,"outputPrefixType":"TINK"}]}`
 
 var EncryptCmd = &cobra.Command{
 	Use:     "encrypt [app ID] [secret value]...",
