@@ -77,11 +77,15 @@ func (m Marquee) FrameCount() int {
 	var cw int
 	var size int
 	if m.isVertical() {
-		cb = m.Child.PaintBounds(image.Rect(0, 0, FrameWidth, m.Height*10), 0)
+		// Use default frame width for constraint since FrameCount is called
+		// before Paint context exists. This ensures thread-safe behavior.
+		cb = m.Child.PaintBounds(image.Rect(0, 0, DefaultFrameWidth, m.Height*10), 0)
 		cw = cb.Dy()
 		size = m.Height
 	} else {
-		cb = m.Child.PaintBounds(image.Rect(0, 0, m.Width*10, FrameHeight), 0)
+		// Use default frame height for constraint since FrameCount is called
+		// before Paint context exists. This ensures thread-safe behavior.
+		cb = m.Child.PaintBounds(image.Rect(0, 0, m.Width*10, DefaultFrameHeight), 0)
 		cw = cb.Dx()
 		size = m.Width
 	}

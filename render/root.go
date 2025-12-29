@@ -48,6 +48,12 @@ type Root struct {
 	MaxAge            int32  `starlark:"max_age"`
 	ShowFullAnimation bool   `starlark:"show_full_animation"`
 
+	// Width and Height specify the canvas dimensions for this root.
+	// If zero, defaults to DefaultFrameWidth/DefaultFrameHeight.
+	// These fields enable thread-safe rendering by avoiding global state.
+	Width  int
+	Height int
+
 	maxParallelFrames int
 	maxFrameCount     int
 }
@@ -97,11 +103,23 @@ func (r Root) Paint(solidBackground bool, opts ...RootPaintOption) []image.Image
 		parallelism = runtime.NumCPU()
 	}
 
-	if globals.Width != DefaultFrameWidth {
-		FrameWidth = globals.Width
+	// Use instance dimensions if set, otherwise fall back to globals for
+	// backwards compatibility, then to defaults.
+	frameWidth := r.Width
+	frameHeight := r.Height
+	if frameWidth <= 0 {
+		if globals.Width != DefaultFrameWidth {
+			frameWidth = globals.Width
+		} else {
+			frameWidth = DefaultFrameWidth
+		}
 	}
-	if globals.Height != DefaultFrameHeight {
-		FrameHeight = globals.Height
+	if frameHeight <= 0 {
+		if globals.Height != DefaultFrameHeight {
+			frameHeight = globals.Height
+		} else {
+			frameHeight = DefaultFrameHeight
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -116,14 +134,14 @@ func (r Root) Paint(solidBackground bool, opts ...RootPaintOption) []image.Image
 				wg.Done()
 			}()
 
-			dc := gg.NewContext(FrameWidth, FrameHeight)
+			dc := gg.NewContext(frameWidth, frameHeight)
 			if solidBackground {
 				dc.SetColor(color.Black)
 				dc.Clear()
 			}
 
 			dc.Push()
-			r.Child.Paint(dc, image.Rect(0, 0, FrameWidth, FrameHeight), i)
+			r.Child.Paint(dc, image.Rect(0, 0, frameWidth, frameHeight), i)
 			dc.Pop()
 			frames[i] = dc.Image()
 		}(i)

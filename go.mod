@@ -36,7 +36,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tidbyt/gg v0.0.0-20220808163829-95806fa1d427
 	github.com/tidbyt/go-libwebp v0.0.0-20230922075150-fb11063b2a6a
-	github.com/tink-crypto/tink-go/v2 v2.4.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/zachomedia/go-bdf v0.0.0-20220611021443-a3af701111be
 	go.starlark.net v0.0.0-20240411212711-9b43f0afd521
@@ -69,6 +68,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

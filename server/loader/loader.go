@@ -30,7 +30,9 @@ type Loader struct {
 	maxDuration      int
 	initialLoad      chan bool
 	timeout          int
-	renderGif		 bool
+	renderGif        bool
+	displayWidth     int // Display width for rendering (0 = default 64)
+	displayHeight    int // Display height for rendering (0 = default 32)
 }
 
 type Update struct {
@@ -166,6 +168,19 @@ func (l *Loader) CallSchemaHandler(ctx context.Context, handlerName, parameter s
 	return l.applet.CallSchemaHandler(ctx, handlerName, parameter)
 }
 
+// SetDisplayDimensions sets the display dimensions for rendering.
+// If width or height is 0, the default (64x32) will be used.
+func (l *Loader) SetDisplayDimensions(width, height int) {
+	l.displayWidth = width
+	l.displayHeight = height
+}
+
+// GetDisplayDimensions returns the current display dimensions.
+// Returns 0 for either dimension if using defaults.
+func (l *Loader) GetDisplayDimensions() (width, height int) {
+	return l.displayWidth, l.displayHeight
+}
+
 func (l *Loader) loadApplet(config map[string]string) (string, error) {
 	if l.watch {
 		app, err := loadScript("app-id", l.fs)
@@ -183,7 +198,8 @@ func (l *Loader) loadApplet(config map[string]string) (string, error) {
 		fmt.Errorf("timeout after %dms", l.timeout),
 	)
 
-	roots, err := l.applet.RunWithConfig(ctx, config)
+	// Use RunWithConfigAndDimensions for thread-safe rendering with explicit dimensions
+	roots, err := l.applet.RunWithConfigAndDimensions(ctx, config, l.displayWidth, l.displayHeight)
 	if err != nil {
 		return "", fmt.Errorf("error running script: %w", err)
 	}

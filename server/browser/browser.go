@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -161,6 +162,22 @@ func (b *Browser) schemaHandlerHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(data))
 }
 
+// parseDisplayDimensions extracts width and height from request form values.
+// Returns 0 for either dimension if not specified or invalid (will use defaults).
+func parseDisplayDimensions(form map[string][]string) (width, height int) {
+	if vals, ok := form["display_width"]; ok && len(vals) > 0 {
+		if w, err := strconv.Atoi(vals[0]); err == nil && w > 0 {
+			width = w
+		}
+	}
+	if vals, ok := form["display_height"]; ok && len(vals) > 0 {
+		if h, err := strconv.Atoi(vals[0]); err == nil && h > 0 {
+			height = h
+		}
+	}
+	return width, height
+}
+
 func (b *Browser) imageHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -168,6 +185,10 @@ func (b *Browser) imageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form data", http.StatusBadRequest)
 		return
 	}
+
+	// Parse display dimensions from request
+	width, height := parseDisplayDimensions(r.Form)
+	b.loader.SetDisplayDimensions(width, height)
 
 	config := make(map[string]string)
 	for k, val := range r.Form {
@@ -202,6 +223,11 @@ func (b *Browser) previewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form data", http.StatusBadRequest)
 		return
 	}
+
+	// Parse display dimensions from request
+	width, height := parseDisplayDimensions(r.Form)
+	b.loader.SetDisplayDimensions(width, height)
+
 	config := make(map[string]string)
 	for k, val := range r.Form {
 		config[k] = val[0]

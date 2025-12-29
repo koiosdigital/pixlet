@@ -158,12 +158,25 @@ func (a *Applet) Run(ctx context.Context) (roots []render.Root, err error) {
 //
 // It's used internally by RunWithConfig to extract the roots returned by the applet.
 func ExtractRoots(val starlark.Value) ([]render.Root, error) {
+	return ExtractRootsWithDimensions(val, 0, 0)
+}
+
+// ExtractRootsWithDimensions extracts render roots from a Starlark value and sets
+// the canvas dimensions on each root. If width or height is 0, the root's default
+// dimensions will be used during painting.
+//
+// This enables thread-safe rendering by embedding dimensions in each root rather
+// than relying on global state.
+func ExtractRootsWithDimensions(val starlark.Value, width, height int) ([]render.Root, error) {
 	var roots []render.Root
 
 	if val == starlark.None {
 		// no roots returned
 	} else if returnRoot, ok := val.(render_runtime.Rootable); ok {
-		roots = []render.Root{returnRoot.AsRenderRoot()}
+		root := returnRoot.AsRenderRoot()
+		root.Width = width
+		root.Height = height
+		roots = []render.Root{root}
 	} else if returnList, ok := val.(*starlark.List); ok {
 		roots = make([]render.Root, returnList.Len())
 		iter := returnList.Iterate()
@@ -172,7 +185,10 @@ func ExtractRoots(val starlark.Value) ([]render.Root, error) {
 		var listVal starlark.Value
 		for iter.Next(&listVal) {
 			if listValRoot, ok := listVal.(render_runtime.Rootable); ok {
-				roots[i] = listValRoot.AsRenderRoot()
+				root := listValRoot.AsRenderRoot()
+				root.Width = width
+				root.Height = height
+				roots[i] = root
 			} else {
 				return nil, fmt.Errorf(
 					"expected app implementation to return Root(s) but found: %s (at index %d)",
@@ -192,9 +208,22 @@ func ExtractRoots(val starlark.Value) ([]render.Root, error) {
 // RunWithConfig exceutes the applet's main function, passing it configuration as a
 // starlark dict. It returns the render roots that are returned by the applet.
 func (a *Applet) RunWithConfig(ctx context.Context, config map[string]string) (roots []render.Root, err error) {
+	return a.RunWithConfigAndDimensions(ctx, config, 0, 0)
+}
+
+// RunWithConfigAndDimensions executes the applet's main function with configuration
+// and sets the canvas dimensions on the returned roots. This enables thread-safe
+// rendering by embedding dimensions in each root rather than relying on global state.
+//
+// The config object passed to the app's main() function will have width() and height()
+// methods that return the display dimensions as integers.
+//
+// If width or height is 0, the root's default dimensions (64x32) will be used.
+func (a *Applet) RunWithConfigAndDimensions(ctx context.Context, config map[string]string, width, height int) (roots []render.Root, err error) {
 	var args starlark.Tuple
 	if a.mainFun.NumParams() > 0 {
-		starlarkConfig := AppletConfig(config)
+		// Use AppletConfigWithDimensions to provide width()/height() methods
+		starlarkConfig := NewAppletConfigWithDimensions(config, width, height)
 		args = starlark.Tuple{starlarkConfig}
 	}
 
@@ -203,7 +232,7 @@ func (a *Applet) RunWithConfig(ctx context.Context, config map[string]string) (r
 		return nil, err
 	}
 
-	roots, err = ExtractRoots(returnValue)
+	roots, err = ExtractRootsWithDimensions(returnValue, width, height)
 	if err != nil {
 		return nil, err
 	}

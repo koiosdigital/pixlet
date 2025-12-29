@@ -8,7 +8,91 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// DefaultDisplayWidth is the default width for display rendering
+const DefaultDisplayWidth = 64
+
+// DefaultDisplayHeight is the default height for display rendering
+const DefaultDisplayHeight = 32
+
 type AppletConfig map[string]string
+
+// AppletConfigWithDimensions wraps AppletConfig and adds display dimension accessors.
+// This allows apps to access width/height as integers directly instead of parsing strings.
+type AppletConfigWithDimensions struct {
+	config        AppletConfig
+	displayWidth  int
+	displayHeight int
+}
+
+// NewAppletConfigWithDimensions creates a config wrapper with explicit dimensions.
+// If width or height is 0, defaults to 64x32.
+func NewAppletConfigWithDimensions(config map[string]string, width, height int) *AppletConfigWithDimensions {
+	if width <= 0 {
+		width = DefaultDisplayWidth
+	}
+	if height <= 0 {
+		height = DefaultDisplayHeight
+	}
+	return &AppletConfigWithDimensions{
+		config:        AppletConfig(config),
+		displayWidth:  width,
+		displayHeight: height,
+	}
+}
+
+func (c *AppletConfigWithDimensions) AttrNames() []string {
+	return []string{
+		"get",
+		"str",
+		"bool",
+		"width",
+		"height",
+	}
+}
+
+func (c *AppletConfigWithDimensions) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "get", "str":
+		return starlark.NewBuiltin("str", c.getString), nil
+	case "bool":
+		return starlark.NewBuiltin("bool", c.getBoolean), nil
+	case "width":
+		return starlark.NewBuiltin("width", c.getWidth), nil
+	case "height":
+		return starlark.NewBuiltin("height", c.getHeight), nil
+	default:
+		return nil, nil
+	}
+}
+
+func (c *AppletConfigWithDimensions) Get(key starlark.Value) (starlark.Value, bool, error) {
+	return c.config.Get(key)
+}
+
+func (c *AppletConfigWithDimensions) String() string       { return "AppletConfig(...)" }
+func (c *AppletConfigWithDimensions) Type() string         { return "AppletConfig" }
+func (c *AppletConfigWithDimensions) Freeze()              {}
+func (c *AppletConfigWithDimensions) Truth() starlark.Bool { return true }
+
+func (c *AppletConfigWithDimensions) Hash() (uint32, error) {
+	return c.config.Hash()
+}
+
+func (c *AppletConfigWithDimensions) getString(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return c.config.getString(thread, nil, args, kwargs)
+}
+
+func (c *AppletConfigWithDimensions) getBoolean(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return c.config.getBoolean(thread, nil, args, kwargs)
+}
+
+func (c *AppletConfigWithDimensions) getWidth(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.MakeInt(c.displayWidth), nil
+}
+
+func (c *AppletConfigWithDimensions) getHeight(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.MakeInt(c.displayHeight), nil
+}
 
 func (a AppletConfig) AttrNames() []string {
 	return []string{
