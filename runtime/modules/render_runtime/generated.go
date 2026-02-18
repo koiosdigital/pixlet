@@ -722,6 +722,8 @@ func newMarquee(
 		scroll_direction starlark.String
 		align            starlark.String
 		delay            starlark.Int
+		end_delay        starlark.Int
+		loop             starlark.Bool
 	)
 
 	if err := starlark.UnpackArgs(
@@ -735,6 +737,8 @@ func newMarquee(
 		"scroll_direction?", &scroll_direction,
 		"align?", &align,
 		"delay?", &delay,
+		"end_delay?", &end_delay,
+		"loop?", &loop,
 	); err != nil {
 		return nil, fmt.Errorf("unpacking arguments for Marquee: %s", err)
 	}
@@ -767,6 +771,10 @@ func newMarquee(
 
 	w.Delay = int(delay.BigInt().Int64())
 
+	w.EndDelay = int(end_delay.BigInt().Int64())
+
+	w.Loop = bool(loop)
+
 	w.frame_count = starlark.NewBuiltin("frame_count", marqueeFrameCount)
 
 	return w, nil
@@ -778,7 +786,7 @@ func (w *Marquee) AsRenderWidget() render.Widget {
 
 func (w *Marquee) AttrNames() []string {
 	return []string{
-		"child", "width", "height", "offset_start", "offset_end", "scroll_direction", "align", "delay",
+		"child", "width", "height", "offset_start", "offset_end", "scroll_direction", "align", "delay", "end_delay", "loop",
 	}
 }
 
@@ -816,6 +824,14 @@ func (w *Marquee) Attr(name string) (starlark.Value, error) {
 	case "delay":
 
 		return starlark.MakeInt(int(w.Delay)), nil
+
+	case "end_delay":
+
+		return starlark.MakeInt(int(w.EndDelay)), nil
+
+	case "loop":
+
+		return starlark.Bool(w.Loop), nil
 
 	case "frame_count":
 		return w.frame_count.BindReceiver(w), nil
@@ -1358,6 +1374,8 @@ func newRoot(
 		delay               starlark.Int
 		max_age             starlark.Int
 		show_full_animation starlark.Bool
+		width               starlark.Int
+		height              starlark.Int
 	)
 
 	if err := starlark.UnpackArgs(
@@ -1367,6 +1385,8 @@ func newRoot(
 		"delay?", &delay,
 		"max_age?", &max_age,
 		"show_full_animation?", &show_full_animation,
+		"width?", &width,
+		"height?", &height,
 	); err != nil {
 		return nil, fmt.Errorf("unpacking arguments for Root: %s", err)
 	}
@@ -1399,6 +1419,10 @@ func newRoot(
 
 	w.ShowFullAnimation = bool(show_full_animation)
 
+	w.Width = int(width.BigInt().Int64())
+
+	w.Height = int(height.BigInt().Int64())
+
 	return w, nil
 }
 
@@ -1408,7 +1432,7 @@ func (w *Root) AsRenderRoot() render.Root {
 
 func (w *Root) AttrNames() []string {
 	return []string{
-		"child", "delay", "max_age", "show_full_animation",
+		"child", "delay", "max_age", "show_full_animation", "width", "height",
 	}
 }
 
@@ -1430,6 +1454,14 @@ func (w *Root) Attr(name string) (starlark.Value, error) {
 	case "show_full_animation":
 
 		return starlark.Bool(w.ShowFullAnimation), nil
+
+	case "width":
+
+		return starlark.MakeInt(int(w.Width)), nil
+
+	case "height":
+
+		return starlark.MakeInt(int(w.Height)), nil
 
 	default:
 		return nil, nil
@@ -1593,12 +1625,14 @@ func newSequence(
 
 	var (
 		children *starlark.List
+		duration starlark.Int
 	)
 
 	if err := starlark.UnpackArgs(
 		"Sequence",
 		args, kwargs,
 		"children", &children,
+		"duration?", &duration,
 	); err != nil {
 		return nil, fmt.Errorf("unpacking arguments for Sequence: %s", err)
 	}
@@ -1626,6 +1660,8 @@ func newSequence(
 	}
 	w.starlarkChildren = children
 
+	w.Duration = int(duration.BigInt().Int64())
+
 	w.frame_count = starlark.NewBuiltin("frame_count", sequenceFrameCount)
 
 	return w, nil
@@ -1637,7 +1673,7 @@ func (w *Sequence) AsRenderWidget() render.Widget {
 
 func (w *Sequence) AttrNames() []string {
 	return []string{
-		"children",
+		"children", "duration",
 	}
 }
 
@@ -1647,6 +1683,10 @@ func (w *Sequence) Attr(name string) (starlark.Value, error) {
 	case "children":
 
 		return w.starlarkChildren, nil
+
+	case "duration":
+
+		return starlark.MakeInt(int(w.Duration)), nil
 
 	case "frame_count":
 		return w.frame_count.BindReceiver(w), nil

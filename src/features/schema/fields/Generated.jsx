@@ -12,18 +12,17 @@ export default function Generated({ field }) {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        onChange(source);
-    }, [config])
-
-    useEffect(() => {
         setSource(getSourceField());
     }, [schema])
 
-    const onChange = (source_field) => {
-        if (source_field && source_field.id in config) {
-            callGeneratedHandler(field.id, field.handler, config[source_field.id].value);
+    useEffect(() => {
+        if (!source) return;
+        if (source.id in config) {
+            callGeneratedHandler(field.id, field.handler, config[source.id].value);
+        } else if (source.default !== undefined && source.default !== '') {
+            callGeneratedHandler(field.id, field.handler, source.default);
         }
-    }
+    }, [config, source])
 
     const getSourceField = () => {
         if (schema.value.schema.length == 0) {

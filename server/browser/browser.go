@@ -35,9 +35,6 @@ type Browser struct {
 	serveGif   bool // True if serving GIF, false if serving WebP
 }
 
-//go:embed preview-mask.png
-var previewMask []byte
-
 //go:embed favicon.png
 var favicon []byte
 
@@ -92,7 +89,6 @@ func NewBrowser(addr string, title string, watch bool, updateChan chan loader.Up
 	r.HandleFunc("/legacy", b.oldRootHandler)
 	r.HandleFunc("/ws", b.websocketHandler)
 	r.HandleFunc("/favicon.png", b.faviconHandler).Methods("GET")
-	r.HandleFunc("/preview-mask.png", b.previewMaskHandler).Methods("GET")
 
 	// API endpoints to support the React frontend.
 	r.HandleFunc("/api/v1/preview", b.previewHandler)
@@ -125,11 +121,6 @@ func (b *Browser) Run() error {
 func (b *Browser) faviconHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Write(favicon)
-}
-
-func (b *Browser) previewMaskHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "image/png")
-	w.Write(previewMask)
 }
 
 func (b *Browser) schemaHandler(w http.ResponseWriter, r *http.Request) {

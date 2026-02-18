@@ -6,6 +6,8 @@ import (
 	"github.com/tidbyt/gg"
 )
 
+const loopGap = 10
+
 // Marquee scrolls its child horizontally or vertically.
 //
 // The `scroll_direction` will be 'horizontal' and will scroll from right
@@ -35,6 +37,8 @@ import (
 // DOC(ScrollDirection): Direction to scroll, 'vertical' or 'horizontal', default is horizontal
 // DOC(Align): Alignment when contents fit on screen, 'start', 'center' or 'end', default is start
 // DOC(Delay): Delay the scroll of the animation by a certain number of frames, default is 0
+// DOC(EndDelay): Delay at the end of the scroll animation before looping, default is 0
+// DOC(Loop): If true, scroll continuously with the child wrapping around with a gap instead of scrolling off screen, default is false
 //
 // EXAMPLE BEGIN
 // render.Marquee(
@@ -54,6 +58,8 @@ type Marquee struct {
 	ScrollDirection string `starlark:"scroll_direction"`
 	Align           string `starlark:"align"`
 	Delay           int    `starlark:"delay"`
+	EndDelay        int    `starlark:"end_delay"`
+	Loop            bool   `starlark:"loop"`
 }
 
 func (m Marquee) PaintBounds(bounds image.Rectangle, frameIdx int) image.Rectangle {
@@ -94,6 +100,10 @@ func (m Marquee) FrameCount() int {
 		return 1
 	}
 
+	if m.Loop {
+		return m.Delay + cw + loopGap + 1 + m.EndDelay
+	}
+
 	offstart := m.OffsetStart
 	if offstart < -cw {
 		offstart = -cw
@@ -108,9 +118,9 @@ func (m Marquee) FrameCount() int {
 	// If start and end offsets are identical, do not
 	// repeat these identical frames after another.
 	if offstart == offend {
-		return cw + offstart + size - offend + delay
+		return cw + offstart + size - offend + delay + m.EndDelay
 	} else {
-		return cw + offstart + size - offend + 1 + delay
+		return cw + offstart + size - offend + 1 + delay + m.EndDelay
 	}
 }
 
@@ -128,6 +138,11 @@ func (m Marquee) Paint(dc *gg.Context, bounds image.Rectangle, frameIdx int) {
 		cb = m.Child.PaintBounds(image.Rect(0, 0, m.Width*10, bounds.Dy()), 0)
 		cw = cb.Dx()
 		size = m.Width
+	}
+
+	if m.Loop && cw > size {
+		m.paintLoop(dc, bounds, frameIdx, cw, size)
+		return
 	}
 
 	offstart := m.OffsetStart
@@ -190,6 +205,59 @@ func (m Marquee) Paint(dc *gg.Context, bounds image.Rectangle, frameIdx int) {
 		dc.Clip()
 		dc.Translate(float64(offset), 0)
 		m.Child.Paint(dc, image.Rect(0, 0, m.Width*10, bounds.Dy()), 0)
+		dc.Pop()
+	}
+}
+
+func (m Marquee) paintLoop(dc *gg.Context, bounds image.Rectangle, frameIdx int, cw, size int) {
+	gap := loopGap
+	cycleLen := cw + gap
+	delay := m.Delay
+
+	var offset int
+	if frameIdx <= delay {
+		offset = m.OffsetStart
+	} else {
+		scrollFrame := frameIdx - delay
+		if scrollFrame >= cycleLen {
+			// end_delay or beyond: freeze at start position
+			offset = m.OffsetStart
+		} else {
+			offset = m.OffsetStart - scrollFrame
+		}
+	}
+
+	pb := m.PaintBounds(bounds, frameIdx)
+
+	if m.isVertical() {
+		dc.Push()
+		dc.DrawRectangle(0, 0, float64(pb.Dx()), float64(pb.Dy()))
+		dc.Clip()
+		// First copy
+		dc.Push()
+		dc.Translate(0, float64(offset))
+		m.Child.Paint(dc, image.Rect(0, 0, bounds.Dx(), m.Height*10), 0)
+		dc.Pop()
+		// Second copy (wrapped)
+		dc.Push()
+		dc.Translate(0, float64(offset+cw+gap))
+		m.Child.Paint(dc, image.Rect(0, 0, bounds.Dx(), m.Height*10), 0)
+		dc.Pop()
+		dc.Pop()
+	} else {
+		dc.Push()
+		dc.DrawRectangle(0, 0, float64(pb.Dx()), float64(pb.Dy()))
+		dc.Clip()
+		// First copy
+		dc.Push()
+		dc.Translate(float64(offset), 0)
+		m.Child.Paint(dc, image.Rect(0, 0, m.Width*10, bounds.Dy()), 0)
+		dc.Pop()
+		// Second copy (wrapped)
+		dc.Push()
+		dc.Translate(float64(offset+cw+gap), 0)
+		m.Child.Paint(dc, image.Rect(0, 0, m.Width*10, bounds.Dy()), 0)
+		dc.Pop()
 		dc.Pop()
 	}
 }

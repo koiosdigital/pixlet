@@ -101,3 +101,29 @@ func TestOAuth2NoClientID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, screens)
 }
+
+var oauth2ClientIDAndUserDefinedSource = `
+load("schema.star", "schema")
+
+schema.OAuth2(
+    id = "auth",
+    name = "GitHub",
+    desc = "Connect your GitHub account.",
+    icon = "github",
+    handler = lambda params: "foo",
+    client_id = "some-id",
+    authorization_endpoint = "https://example.com/",
+    scopes = ["read:user"],
+    user_defined_client = True,
+)
+
+def main():
+    return []
+
+`
+
+func TestOAuth2ErrorOnClientIDAndUserDefined(t *testing.T) {
+	_, err := runtime.NewApplet("oauth2_conflict.star", []byte(oauth2ClientIDAndUserDefinedSource))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "client_id and user_defined_client cannot both be set")
+}

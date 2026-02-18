@@ -69,7 +69,13 @@ export default function Preview() {
         img = preview.value.img;
     }
 
-    let content = <img src={displayType + img} className={styles.image} />
+    const handleLoad = (e) => {
+        const el = e.target;
+        el.style.setProperty('--cols', el.naturalWidth);
+        el.style.setProperty('--rows', el.naturalHeight);
+    };
+
+    let content = <img src={displayType + img} className={styles.image} onLoad={handleLoad} />
     return (
         <Paper sx={{ bgcolor: "black" }}>
             {content}

@@ -164,3 +164,124 @@ func TestSequenceWithAnimatedChildren(t *testing.T) {
 		assert.Equal(t, nil, checkImage(expected[i], im))
 	}
 }
+
+func TestSequenceDurationZeroIsDefault(t *testing.T) {
+	seq := Sequence{
+		Children: []Widget{
+			Box{Width: 3, Height: 3, Color: color.RGBA{0xff, 0, 0, 0xff}},
+			Box{Width: 6, Height: 3, Color: color.RGBA{0, 0xff, 0, 0xff}},
+		},
+		Duration: 0,
+	}
+
+	assert.Equal(t, 2, seq.FrameCount())
+
+	im := PaintWidget(seq, image.Rect(0, 0, 10, 3), 0)
+	assert.Equal(t, nil, checkImage([]string{"rrr", "rrr", "rrr"}, im))
+
+	im = PaintWidget(seq, image.Rect(0, 0, 10, 3), 1)
+	assert.Equal(t, nil, checkImage([]string{"gggggg", "gggggg", "gggggg"}, im))
+}
+
+func TestSequenceDurationLoops(t *testing.T) {
+	red := color.RGBA{0xff, 0, 0, 0xff}
+	green := color.RGBA{0, 0xff, 0, 0xff}
+	blue := color.RGBA{0, 0, 0xff, 0xff}
+
+	seq := Sequence{
+		Children: []Widget{
+			Box{Width: 3, Height: 3, Color: red},
+			Box{Width: 3, Height: 3, Color: green},
+			Box{Width: 3, Height: 3, Color: blue},
+		},
+		Duration: 7, // base cycle = 3, so: r g b r g b r
+	}
+
+	assert.Equal(t, 7, seq.FrameCount())
+	assert.Equal(t, 3, seq.baseCycleFrameCount())
+
+	// First cycle
+	im := PaintWidget(seq, image.Rect(0, 0, 3, 3), 0)
+	assert.Nil(t, checkImage([]string{"rrr", "rrr", "rrr"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 1)
+	assert.Nil(t, checkImage([]string{"ggg", "ggg", "ggg"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 2)
+	assert.Nil(t, checkImage([]string{"bbb", "bbb", "bbb"}, im))
+
+	// Second cycle (looped)
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 3)
+	assert.Nil(t, checkImage([]string{"rrr", "rrr", "rrr"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 4)
+	assert.Nil(t, checkImage([]string{"ggg", "ggg", "ggg"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 5)
+	assert.Nil(t, checkImage([]string{"bbb", "bbb", "bbb"}, im))
+
+	// Partial third cycle
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 6)
+	assert.Nil(t, checkImage([]string{"rrr", "rrr", "rrr"}, im))
+}
+
+func TestSequenceDurationWithAnimatedChildren(t *testing.T) {
+	red := color.RGBA{0xff, 0, 0, 0xff}
+	green := color.RGBA{0, 0xff, 0, 0xff}
+
+	anim0 := Animation{
+		Children: []Widget{
+			Box{Width: 2, Height: 2, Color: red},
+			Box{Width: 2, Height: 2, Color: red},
+		},
+	}
+	anim1 := Animation{
+		Children: []Widget{
+			Box{Width: 2, Height: 2, Color: green},
+			Box{Width: 2, Height: 2, Color: green},
+		},
+	}
+
+	seq := Sequence{
+		Children: []Widget{anim0, anim1},
+		Duration: 6, // base cycle = 4 (2+2), loops into partial second cycle
+	}
+
+	assert.Equal(t, 6, seq.FrameCount())
+	assert.Equal(t, 4, seq.baseCycleFrameCount())
+
+	// Frame 0,1 => anim0 (red)
+	im := PaintWidget(seq, image.Rect(0, 0, 2, 2), 0)
+	assert.Nil(t, checkImage([]string{"rr", "rr"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 2, 2), 1)
+	assert.Nil(t, checkImage([]string{"rr", "rr"}, im))
+
+	// Frame 2,3 => anim1 (green)
+	im = PaintWidget(seq, image.Rect(0, 0, 2, 2), 2)
+	assert.Nil(t, checkImage([]string{"gg", "gg"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 2, 2), 3)
+	assert.Nil(t, checkImage([]string{"gg", "gg"}, im))
+
+	// Frame 4,5 => looped back: anim0 (red)
+	im = PaintWidget(seq, image.Rect(0, 0, 2, 2), 4)
+	assert.Nil(t, checkImage([]string{"rr", "rr"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 2, 2), 5)
+	assert.Nil(t, checkImage([]string{"rr", "rr"}, im))
+}
+
+func TestSequenceDurationShorterThanBase(t *testing.T) {
+	red := color.RGBA{0xff, 0, 0, 0xff}
+	green := color.RGBA{0, 0xff, 0, 0xff}
+
+	seq := Sequence{
+		Children: []Widget{
+			Box{Width: 3, Height: 3, Color: red},
+			Box{Width: 3, Height: 3, Color: green},
+			Box{Width: 3, Height: 3, Color: color.RGBA{0, 0, 0xff, 0xff}},
+		},
+		Duration: 2, // truncated: only red and green
+	}
+
+	assert.Equal(t, 2, seq.FrameCount())
+
+	im := PaintWidget(seq, image.Rect(0, 0, 3, 3), 0)
+	assert.Nil(t, checkImage([]string{"rrr", "rrr", "rrr"}, im))
+	im = PaintWidget(seq, image.Rect(0, 0, 3, 3), 1)
+	assert.Nil(t, checkImage([]string{"ggg", "ggg", "ggg"}, im))
+}

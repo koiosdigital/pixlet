@@ -16,6 +16,7 @@ import (
 
 const (
 	threadDecrypterKey = "tidbyt.dev/pixlet/runtime/decrypter"
+	threadEncrypterKey = "tidbyt.dev/pixlet/runtime/encrypter"
 )
 
 // SecretDecryptionKey is a key that can be used to decrypt secrets.
@@ -70,12 +71,58 @@ func LoadSecretModule() (starlark.StringDict, error) {
 				Name: "secret",
 				Members: starlark.StringDict{
 					"decrypt": starlark.NewBuiltin("decrypt", secretDecrypt),
+					"encrypt": starlark.NewBuiltin("encrypt", secretEncrypt),
 				},
 			},
 		}
 	})
 
 	return secretModule, nil
+}
+
+type encrypter func(starlark.String) (starlark.String, error)
+
+func (sek *SecretEncryptionKey) encrypterForApp(a *Applet) encrypter {
+	return func(s starlark.String) (starlark.String, error) {
+		ciphertext, err := sek.Encrypt(a.ID, s.GoString())
+		if err != nil {
+			return "", fmt.Errorf("encrypting secret: %w", err)
+		}
+		return starlark.String(ciphertext), nil
+	}
+}
+
+func (e encrypter) attachToThread(t *starlark.Thread) {
+	t.SetLocal(threadEncrypterKey, e)
+}
+
+func encrypterForThread(t *starlark.Thread) encrypter {
+	e, ok := t.Local(threadEncrypterKey).(encrypter)
+	if ok {
+		return e
+	}
+	return nil
+}
+
+func secretEncrypt(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var plaintextVal starlark.String
+
+	if err := starlark.UnpackPositionalArgs(
+		"encrypt",
+		args, kwargs,
+		0, &plaintextVal,
+	); err != nil {
+		return nil, fmt.Errorf("unpacking arguments for secret.encrypt: %v", err)
+	}
+
+	enc := encrypterForThread(thread)
+
+	if enc == nil {
+		// no encrypter configured, fall through and return plaintext
+		return plaintextVal, nil
+	}
+
+	return enc(plaintextVal)
 }
 
 type decrypter func(starlark.String) (starlark.String, error)

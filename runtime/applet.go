@@ -16,6 +16,7 @@ import (
 	starlibgzip "github.com/qri-io/starlib/compress/gzip"
 	starlibbase64 "github.com/qri-io/starlib/encoding/base64"
 	starlibcsv "github.com/qri-io/starlib/encoding/csv"
+	starlibgeo "github.com/qri-io/starlib/geo"
 	starlibhash "github.com/qri-io/starlib/hash"
 	starlibhtml "github.com/qri-io/starlib/html"
 	starlibre "github.com/qri-io/starlib/re"
@@ -95,6 +96,17 @@ func WithSecretDecryptionKey(key *SecretDecryptionKey) AppletOption {
 			})
 			return nil
 		}
+	}
+}
+
+func WithSecretEncryptionKey(key *SecretEncryptionKey) AppletOption {
+	return func(a *Applet) error {
+		enc := key.encrypterForApp(a)
+		a.initializers = append(a.initializers, func(t *starlark.Thread) *starlark.Thread {
+			enc.attachToThread(t)
+			return t
+		})
+		return nil
 	}
 }
 
@@ -559,6 +571,9 @@ func (a *Applet) loadModule(thread *starlark.Thread, module string) (starlark.St
 
 	case "bsoup.star":
 		return starlibbsoup.LoadModule()
+
+	case "geo.star":
+		return starlibgeo.LoadModule()
 
 	case "compress/gzip.star":
 		return starlark.StringDict{

@@ -7,8 +7,8 @@
 	image-rendering: -moz-crisp-edges;
 	image-rendering: crisp-edges;
 	width: 100%;
-	mask-size: contain;
-	-webkit-mask-size: contain;
-	mask-image: url('./mask.png');
-	-webkit-mask-image: url('./mask.png');
+	mask-image: radial-gradient(circle, #fff 40%, transparent 40%);
+	-webkit-mask-image: radial-gradient(circle, #fff 40%, transparent 40%);
+	mask-size: calc(100% / var(--cols, 64)) calc(100% / var(--rows, 32));
+	-webkit-mask-size: calc(100% / var(--cols, 64)) calc(100% / var(--rows, 32));
 }

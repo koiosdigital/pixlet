@@ -10,17 +10,17 @@
 			image-rendering: -moz-crisp-edges;
 			image-rendering: crisp-edges;
 			width: 100%;
-			mask-size: contain;
-			-webkit-mask-size: contain;
-			mask-image: url("./preview-mask.png");
-			-webkit-mask-image: url("./preview-mask.png");
+			mask-image: radial-gradient(circle, #fff 40%, transparent 40%);
+			-webkit-mask-image: radial-gradient(circle, #fff 40%, transparent 40%);
+			mask-size: calc(100% / var(--cols, 64)) calc(100% / var(--rows, 32));
+			-webkit-mask-size: calc(100% / var(--cols, 64)) calc(100% / var(--rows, 32));
 		}
 	</style>
 </head>
 
 <body bgcolor="black">
 	<div style="border: solid 1px white">
-		<img id="render" src="data:image/{{ .ImageType }};base64,{{ .Image }}" />
+		<img id="render" src="data:image/{{ .ImageType }};base64,{{ .Image }}" onload="this.style.setProperty('--cols',this.naturalWidth);this.style.setProperty('--rows',this.naturalHeight)" />
 	</div>
 	<div>
 		<p id="errors" style="color: red;">{{ .Err }}</p>

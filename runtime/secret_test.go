@@ -80,6 +80,144 @@ def main():
 	assert.Equal(t, 1, len(roots))
 }
 
+func TestSecretEncrypt(t *testing.T) {
+	plaintext := "h4x0rrszZ!!"
+
+	// make a test key pair
+	dummyKEK := &dummyAEAD{}
+	khPriv, err := keyset.NewHandle(hybrid.ECIESHKDFAES128CTRHMACSHA256KeyTemplate())
+	require.NoError(t, err)
+
+	privJSON := &bytes.Buffer{}
+	err = khPriv.Write(keyset.NewJSONWriter(privJSON), dummyKEK)
+	require.NoError(t, err)
+
+	decryptionKey := &SecretDecryptionKey{
+		EncryptedKeysetJSON: privJSON.Bytes(),
+		KeyEncryptionKey:    dummyKEK,
+	}
+
+	khPub, err := khPriv.Public()
+	require.NoError(t, err)
+
+	pubJSON := &bytes.Buffer{}
+	err = khPub.WriteWithNoSecrets(keyset.NewJSONWriter(pubJSON))
+	require.NoError(t, err)
+
+	encryptionKey := &SecretEncryptionKey{
+		PublicKeysetJSON: pubJSON.Bytes(),
+	}
+
+	src := fmt.Sprintf(`
+load("render.star", "render")
+load("secret.star", "secret")
+
+PLAINTEXT = "%s"
+ENCRYPTED = secret.encrypt(PLAINTEXT)
+
+def assert_neq(message, a, b):
+	if a == b:
+		fail(message, "-", "values should differ but both are", a)
+
+def main():
+	assert_neq("encrypt should produce ciphertext", ENCRYPTED, PLAINTEXT)
+	return render.Root(child=render.Box())
+`, plaintext)
+
+	app, err := NewApplet("testid", []byte(src),
+		WithSecretEncryptionKey(encryptionKey),
+		WithSecretDecryptionKey(decryptionKey),
+	)
+	require.NoError(t, err)
+
+	roots, err := app.Run(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(roots))
+}
+
+func TestSecretEncryptThenDecrypt(t *testing.T) {
+	plaintext := "round-trip-me"
+
+	// make a test key pair
+	dummyKEK := &dummyAEAD{}
+	khPriv, err := keyset.NewHandle(hybrid.ECIESHKDFAES128CTRHMACSHA256KeyTemplate())
+	require.NoError(t, err)
+
+	privJSON := &bytes.Buffer{}
+	err = khPriv.Write(keyset.NewJSONWriter(privJSON), dummyKEK)
+	require.NoError(t, err)
+
+	decryptionKey := &SecretDecryptionKey{
+		EncryptedKeysetJSON: privJSON.Bytes(),
+		KeyEncryptionKey:    dummyKEK,
+	}
+
+	khPub, err := khPriv.Public()
+	require.NoError(t, err)
+
+	pubJSON := &bytes.Buffer{}
+	err = khPub.WriteWithNoSecrets(keyset.NewJSONWriter(pubJSON))
+	require.NoError(t, err)
+
+	encryptionKey := &SecretEncryptionKey{
+		PublicKeysetJSON: pubJSON.Bytes(),
+	}
+
+	src := fmt.Sprintf(`
+load("render.star", "render")
+load("secret.star", "secret")
+
+PLAINTEXT = "%s"
+ENCRYPTED = secret.encrypt(PLAINTEXT)
+DECRYPTED = secret.decrypt(ENCRYPTED)
+
+def assert_eq(message, actual, expected):
+	if not expected == actual:
+		fail(message, "-", "expected", expected, "actual", actual)
+
+def main():
+	assert_eq("round-trip", DECRYPTED, PLAINTEXT)
+	return render.Root(child=render.Box())
+`, plaintext)
+
+	app, err := NewApplet("testid", []byte(src),
+		WithSecretEncryptionKey(encryptionKey),
+		WithSecretDecryptionKey(decryptionKey),
+	)
+	require.NoError(t, err)
+
+	roots, err := app.Run(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(roots))
+}
+
+func TestSecretEncryptFallsBackToPlaintext(t *testing.T) {
+	plaintext := "no-key-available"
+
+	src := fmt.Sprintf(`
+load("render.star", "render")
+load("secret.star", "secret")
+
+PLAINTEXT = "%s"
+ENCRYPTED = secret.encrypt(PLAINTEXT)
+
+def assert_eq(message, actual, expected):
+	if not expected == actual:
+		fail(message, "-", "expected", expected, "actual", actual)
+
+def main():
+	assert_eq("fallback to plaintext", ENCRYPTED, PLAINTEXT)
+	return render.Root(child=render.Box())
+`, plaintext)
+
+	app, err := NewApplet("testid", []byte(src))
+	require.NoError(t, err)
+
+	roots, err := app.Run(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(roots))
+}
+
 func TestSecretDoesntDecryptWithoutKey(t *testing.T) {
 	plaintext := "h4x0rrszZ!!"
 

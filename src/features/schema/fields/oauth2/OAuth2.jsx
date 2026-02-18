@@ -4,7 +4,6 @@ import OAuth2Login from "react-simple-oauth2-login";
 
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 
 import { callHandlerSetValue } from "../../../handlers/actions";
@@ -35,13 +34,14 @@ export default function OAuth2({ field }) {
   const [loggedIn, setLoggedIn] = useState("");
   const [pkceParams, setPkceParams] = useState(null);
   const [userClientId, setUserClientId] = useState("");
+  const [userClientSecret, setUserClientSecret] = useState("");
   const codeVerifierRef = useRef(null);
   const dispatch = useDispatch();
   const config = useSelector((state) => state.config);
   const host = document.location.host.replaceAll("localhost", "127.0.0.1");
   const redirectUri =
     document.location.protocol + "//" + host + "/oauth-callback";
-  const clientId = field.client_id || userClientId;
+  const clientId = field.user_defined_client ? userClientId : field.client_id;
 
   useEffect(() => {
     if (field.id in config) {
@@ -76,6 +76,10 @@ export default function OAuth2({ field }) {
 
     if (field.pkce && codeVerifierRef.current) {
       handlerParams.code_verifier = codeVerifierRef.current;
+    }
+
+    if (field.user_defined_client && userClientSecret) {
+      handlerParams.client_secret = userClientSecret;
     }
 
     callHandlerSetValue(
@@ -142,28 +146,26 @@ export default function OAuth2({ field }) {
     );
   }
 
-  // No client_id provided and not a PKCE flow — user-supplied client IDs
-  // are only safe with PKCE, so show an error.
-  if (!field.client_id && !field.pkce) {
-    return (
-      <Typography color="error">
-        Configurable client IDs only available for PKCE flows
-      </Typography>
-    );
-  }
-
   let scope = field.scopes.join(" ");
-  const needsClientId = !field.client_id;
 
   return (
     <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-      {needsClientId && (
-        <TextField
-          size="small"
-          label="Client ID"
-          value={userClientId}
-          onChange={(e) => setUserClientId(e.target.value)}
-        />
+      {field.user_defined_client && (
+        <>
+          <TextField
+            size="small"
+            label="Client ID"
+            value={userClientId}
+            onChange={(e) => setUserClientId(e.target.value)}
+          />
+          <TextField
+            size="small"
+            label="Client Secret"
+            type="password"
+            value={userClientSecret}
+            onChange={(e) => setUserClientSecret(e.target.value)}
+          />
+        </>
       )}
       {clientId ? (
         <OAuth2Login

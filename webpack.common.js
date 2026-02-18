@@ -17,6 +17,7 @@ module.exports = {
             },
             {
                 test: /\.css$/,
+                exclude: /node_modules/,
                 use: [
                     'style-loader',
                     {
@@ -28,7 +29,15 @@ module.exports = {
                 ],
             },
             {
-                test: /\.(webp|jpe?g|gif|star)$/i,
+                test: /\.css$/,
+                include: /node_modules/,
+                use: [
+                    'style-loader',
+                    'css-loader',
+                ],
+            },
+            {
+                test: /\.(webp|png|jpe?g|gif|star)$/i,
                 use: [
                     {
                         loader: 'file-loader',

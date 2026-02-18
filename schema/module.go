@@ -48,6 +48,7 @@ func LoadModule() (starlark.StringDict, error) {
 					"Handler":       starlark.NewBuiltin("Handler", newHandler),
 					"HandlerType":   handlerType,
 					"Generated":     starlark.NewBuiltin("Generated", newGenerated),
+					"GeoJSON":       starlark.NewBuiltin("GeoJSON", newGeoJSON),
 					"Color":         starlark.NewBuiltin("Color", newColor),
 					"Notification":  starlark.NewBuiltin("Notification", newNotification),
 					"Sound":         starlark.NewBuiltin("Sound", newSound),

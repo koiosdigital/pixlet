@@ -214,6 +214,8 @@ one of the following `align` values:
 | `scroll_direction` | `str` | Direction to scroll, 'vertical' or 'horizontal', default is horizontal | N |
 | `align` | `str` | Alignment when contents fit on screen, 'start', 'center' or 'end', default is start | N |
 | `delay` | `int` | Delay the scroll of the animation by a certain number of frames, default is 0 | N |
+| `end_delay` | `int` | Delay at the end of the scroll animation before looping, default is 0 | N |
+| `loop` | `bool` | If true, scroll continuously with the child wrapping around with a gap instead of scrolling off screen, default is false | N |
 
 #### Example
 ```
@@ -289,25 +291,27 @@ Plot is a widget that draws a data series.
 #### Example
 ```
 render.Plot(
-  data = [
-    (0, 3.35),
-    (1, 2.15),
-    (2, 2.37),
-    (3, -0.31),
-    (4, -3.53),
-    (5, 1.31),
-    (6, -1.3),
-    (7, 4.60),
-    (8, 3.33),
-    (9, 5.92),
-  ],
-  width = 64,
-  height = 32,
-  color = "#0f0",
-  color_inverted = "#f00",
-  x_lim = (0, 9),
-  y_lim = (-5, 7),
-  fill = True,
+
+	data = [
+	  (0, 3.35),
+	  (1, 2.15),
+	  (2, 2.37),
+	  (3, -0.31),
+	  (4, -3.53),
+	  (5, 1.31),
+	  (6, -1.3),
+	  (7, 4.60),
+	  (8, 3.33),
+	  (9, 5.92),
+	],
+	width = 64,
+	height = 32,
+	color = "#0f0",
+	color_inverted = "#f00",
+	x_lim = (0, 9),
+	y_lim = (-5, 7),
+	fill = True,
+
 ),
 ```
 ![](img/widget_Plot_0.gif)
@@ -335,6 +339,8 @@ displaying stale data in the event of e.g. connectivity issues.
 | `delay` | `int` | Frame delay in milliseconds | N |
 | `max_age` | `int` | Expiration time in seconds | N |
 | `show_full_animation` | `bool` | Request animation is shown in full, regardless of app cycle speed | N |
+| `width` | `int` |  | N |
+| `height` | `int` |  | N |
 
 
 
@@ -407,19 +413,26 @@ It comes in quite useful when chaining animations.
 If you want to know more about that, go check
 out the [animation](animation.md) documentation.
 
+When Duration is set to a value greater than zero, the
+Sequence will report that as its FrameCount and loop its
+children to fill the requested number of frames.
+
 #### Attributes
 | Name | Type | Description | Required |
 | --- | --- | --- | --- |
 | `children` | `[Widget]` | List of child widgets | **Y** |
+| `duration` | `int` | Total duration in frames (0 = play once, >0 = loop to fill) | N |
 
 #### Example
 ```
 render.Sequence(
-  children = [
-    animation.Transformation(...),
-    animation.Transformation(...),
-    ...
-  ],
+
+	children = [
+	  animation.Transformation(...),
+	  animation.Transformation(...),
+	  ...
+	],
+
 ),
 ```
 ![](img/widget_Sequence_0.gif)
@@ -440,11 +453,13 @@ fit all its children.
 #### Example
 ```
 render.Stack(
-     children=[
-          render.Box(width=50, height=25, color="#911"),
-          render.Text("hello there"),
-          render.Box(width=4, height=32, color="#119"),
-     ],
+
+	children=[
+	     render.Box(width=50, height=25, color="#911"),
+	     render.Text("hello there"),
+	     render.Box(width=4, height=32, color="#119"),
+	],
+
 )
 ```
 ![](img/widget_Stack_0.gif)
@@ -501,9 +516,11 @@ Alignment of the text is controlled by passing one of the following `align` valu
 #### Example
 ```
 render.WrappedText(
-      content="this is a multi-line text string",
-      width=50,
-      color="#fa0",
+
+	content="this is a multi-line text string",
+	width=50,
+	color="#fa0",
+
 )
 ```
 ![](img/widget_WrappedText_0.gif)

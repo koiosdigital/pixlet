@@ -35,9 +35,9 @@ type Schema struct {
 
 // SchemaField represents an item in the config used to confgure an applet.
 type SchemaField struct {
-	Type        string            `json:"type" validate:"required,oneof=color datetime dropdown generated location locationbased onoff radio text typeahead oauth2 oauth1 png notification"`
+	Type        string            `json:"type" validate:"required,oneof=color datetime dropdown generated geojson location locationbased onoff radio text typeahead oauth2 oauth1 png notification"`
 	ID          string            `json:"id" validate:"required,excludesall=$"`
-	Name        string            `json:"name,omitempty" validate:"required_for=datetime dropdown location locationbased onoff radio text typeahead png"`
+	Name        string            `json:"name,omitempty" validate:"required_for=datetime dropdown geojson location locationbased onoff radio text typeahead png"`
 	Description string            `json:"description,omitempty"`
 	Icon        string            `json:"icon,omitempty" validate:"forbidden_for=generated"`
 	Visibility  *SchemaVisibility `json:"visibility,omitempty" validate:"omitempty"`
@@ -54,7 +54,9 @@ type SchemaField struct {
 	ClientID              string   `json:"client_id,omitempty"`
 	AuthorizationEndpoint string   `json:"authorization_endpoint,omitempty" validate:"required_for=oauth2"`
 	Scopes                []string `json:"scopes,omitempty" validate:"required_for=oauth2"`
-	PKCE                  bool     `json:"pkce,omitempty"`
+	PKCE              bool `json:"pkce,omitempty"`
+	UserDefinedClient bool `json:"user_defined_client,omitempty"`
+	CollectPoint      bool `json:"collect_point,omitempty"`
 }
 
 // SchemaOption represents an option in a field. For example, an item in a drop

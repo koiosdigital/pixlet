@@ -27,7 +27,8 @@ func newOAuth2(
 		clientID     starlark.String
 		authEndpoint starlark.String
 		scopes       *starlark.List
-		pkce         starlark.Bool
+		pkce             starlark.Bool
+		userDefinedClient starlark.Bool
 	)
 
 	if err := starlark.UnpackArgs(
@@ -42,8 +43,13 @@ func newOAuth2(
 		"authorization_endpoint", &authEndpoint,
 		"scopes", &scopes,
 		"pkce?", &pkce,
+		"user_defined_client?", &userDefinedClient,
 	); err != nil {
 		return nil, fmt.Errorf("unpacking arguments for OAuth2: %s", err)
+	}
+
+	if clientID.GoString() != "" && bool(userDefinedClient) {
+		return nil, fmt.Errorf("OAuth2: client_id and user_defined_client cannot both be set")
 	}
 
 	s := &OAuth2{}
@@ -57,6 +63,7 @@ func newOAuth2(
 	s.ClientID = clientID.GoString()
 	s.AuthorizationEndpoint = authEndpoint.GoString()
 	s.PKCE = bool(pkce)
+	s.UserDefinedClient = bool(userDefinedClient)
 	s.starlarkScopes = scopes
 
 	if s.starlarkScopes != nil {
@@ -91,7 +98,7 @@ func (s *OAuth2) AsSchemaField() SchemaField {
 
 func (s *OAuth2) AttrNames() []string {
 	return []string{
-		"id", "name", "desc", "icon", "handler", "client_id", "authorization_endpoint", "scopes", "pkce",
+		"id", "name", "desc", "icon", "handler", "client_id", "authorization_endpoint", "scopes", "pkce", "user_defined_client",
 	}
 }
 
@@ -124,6 +131,9 @@ func (s *OAuth2) Attr(name string) (starlark.Value, error) {
 
 	case "pkce":
 		return starlark.Bool(s.PKCE), nil
+
+	case "user_defined_client":
+		return starlark.Bool(s.UserDefinedClient), nil
 
 	default:
 		return nil, nil

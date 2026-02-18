@@ -11,6 +11,7 @@ import LocationBased from './fields/location/LocationBased';
 import LocationForm from './fields/location/LocationForm';
 import TextInput from './fields/TextInput';
 import Typeahead from './fields/Typeahead';
+import GeoJSONField from './fields/geojson/GeoJSONField';
 import Typography from '@mui/material/Typography';
 
 
@@ -20,6 +21,8 @@ export default function FieldDetails({ field }) {
             return <DateTime field={field} />
         case 'dropdown':
             return <Dropdown field={field} />
+        case 'geojson':
+            return <GeoJSONField field={field} />
         case 'location':
             return <LocationForm field={field} />
         case 'locationbased':
