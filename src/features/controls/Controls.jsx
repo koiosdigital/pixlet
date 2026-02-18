@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
 
-import { Button, Stack } from '@mui/material';
+import { Button, Stack, TextField } from '@mui/material';
 import { resetConfig, setConfig } from '../config/actions';
 import { set } from '../config/configSlice';
 
@@ -10,6 +11,23 @@ export default function Controls() {
     const config = useSelector(state => state.config);
     const schema = useSelector(state => state.schema);
     const dispatch = useDispatch();
+
+    const [width, setWidth] = useState(64);
+    const [height, setHeight] = useState(32);
+
+    useEffect(() => {
+        axios.get(`${PIXLET_API_BASE}/api/v1/dimensions`)
+            .then(res => {
+                setWidth(res.data.width);
+                setHeight(res.data.height);
+            })
+            .catch(() => {});
+    }, []);
+
+    function setDimensions() {
+        axios.post(`${PIXLET_API_BASE}/api/v1/dimensions`, { width, height })
+            .catch(() => {});
+    }
 
     let imageType = 'webp';
     if (preview.value.img_type === "gif") {
@@ -98,11 +116,30 @@ export default function Controls() {
     };
 
     return (
-        <Stack sx={{ marginTop: '32px' }} spacing={2} direction="row">
+        <Stack sx={{ marginTop: '32px' }} spacing={2} direction="row" alignItems="center">
             <Button variant="outlined" onClick={() => selectConfig()}>Open Config</Button>
             <Button variant="outlined" onClick={() => downloadConfig()}>Save Config</Button>
             <Button variant="outlined" onClick={() => resetSchema()}>Reset</Button>
             <Button variant="contained" onClick={() => downloadPreview()}>Export Image</Button>
+            <TextField
+                label="Width"
+                type="number"
+                size="small"
+                value={width}
+                onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
+                sx={{ width: 80 }}
+                inputProps={{ min: 1 }}
+            />
+            <TextField
+                label="Height"
+                type="number"
+                size="small"
+                value={height}
+                onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
+                sx={{ width: 80 }}
+                inputProps={{ min: 1 }}
+            />
+            <Button variant="contained" onClick={() => setDimensions()}>Set Dimensions</Button>
         </Stack>
     );
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
 	"tidbyt.dev/pixlet/dist"
+	"tidbyt.dev/pixlet/runtime"
 	"tidbyt.dev/pixlet/server/fanout"
 	"tidbyt.dev/pixlet/server/loader"
 )
@@ -31,7 +32,7 @@ type Browser struct {
 	r          *mux.Router
 	tmpl       *template.Template
 	loader     *loader.Loader
-	serveGif   bool               // True if serving GIF, false if serving WebP
+	serveGif   bool // True if serving GIF, false if serving WebP
 }
 
 //go:embed preview-mask.png
@@ -45,11 +46,11 @@ var previewHTML string
 
 // previewData is used to populate the HTML template.
 type previewData struct {
-	Title  string    `json:"title"`
-	Image  string    `json:"img"`
+	Title     string `json:"title"`
+	Image     string `json:"img"`
 	ImageType string `json:"img_type"`
-	Watch  bool      `json:"-"`
-	Err    string    `json:"error,omitempty"`
+	Watch     bool   `json:"-"`
+	Err       string `json:"error,omitempty"`
 }
 type handlerRequest struct {
 	ID    string `json:"id"`
@@ -100,6 +101,8 @@ func NewBrowser(addr string, title string, watch bool, updateChan chan loader.Up
 	r.HandleFunc("/api/v1/push", b.pushHandler)
 	r.HandleFunc("/api/v1/schema", b.schemaHandler).Methods("GET")
 	r.HandleFunc("/api/v1/handlers/{handler}", b.schemaHandlerHandler).Methods("POST")
+	r.HandleFunc("/api/v1/dimensions", b.getDimensionsHandler).Methods("GET")
+	r.HandleFunc("/api/v1/dimensions", b.setDimensionsHandler).Methods("POST")
 	r.HandleFunc("/api/v1/ws", b.websocketHandler)
 	b.r = r
 
@@ -186,9 +189,13 @@ func (b *Browser) imageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse display dimensions from request
+	// Only override stored dimensions if the request explicitly provides them.
+	// This preserves dimensions set via POST /api/v1/dimensions.
 	width, height := parseDisplayDimensions(r.Form)
-	b.loader.SetDisplayDimensions(width, height)
+	if width > 0 || height > 0 {
+		log.Printf("Setting display dimensions to %dx%d based on image request\n", width, height)
+		b.loader.SetDisplayDimensions(width, height)
+	}
 
 	config := make(map[string]string)
 	for k, val := range r.Form {
@@ -224,9 +231,13 @@ func (b *Browser) previewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse display dimensions from request
+	// Only override stored dimensions if the request explicitly provides them.
+	// This preserves dimensions set via POST /api/v1/dimensions.
 	width, height := parseDisplayDimensions(r.Form)
-	b.loader.SetDisplayDimensions(width, height)
+	if width > 0 || height > 0 {
+		log.Printf("Setting display dimensions to %dx%d based on preview request\n", width, height)
+		b.loader.SetDisplayDimensions(width, height)
+	}
 
 	config := make(map[string]string)
 	for k, val := range r.Form {
@@ -313,6 +324,48 @@ func (b *Browser) updateWatcher() error {
 		}
 	}
 }
+
+type dimensionsResponse struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+func (b *Browser) getDimensionsHandler(w http.ResponseWriter, r *http.Request) {
+	width, height := b.loader.GetDisplayDimensions()
+	if width <= 0 {
+		width = runtime.DefaultDisplayWidth
+	}
+	if height <= 0 {
+		height = runtime.DefaultDisplayHeight
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dimensionsResponse{Width: width, Height: height})
+}
+
+func (b *Browser) setDimensionsHandler(w http.ResponseWriter, r *http.Request) {
+	var req dimensionsResponse
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Width <= 0 || req.Height <= 0 {
+		http.Error(w, "width and height must be positive integers", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Setting display dimensions to %dx%d\n", req.Width, req.Height)
+
+	b.loader.SetDisplayDimensions(req.Width, req.Height)
+
+	// Trigger a re-render with the last config so WebSocket clients see the updated dimensions.
+	b.loader.Rerender()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dimensionsResponse{Width: req.Width, Height: req.Height})
+}
+
 func (b *Browser) rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.Write(dist.Index)
@@ -329,7 +382,7 @@ func (b *Browser) oldRootHandler(w http.ResponseWriter, r *http.Request) {
 	data := previewData{
 		Title: b.title,
 		Watch: b.watch,
-		Image:  img,
+		Image: img,
 	}
 
 	if err != nil {

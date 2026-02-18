@@ -51,9 +51,10 @@ type SchemaField struct {
 	Handler         string             `json:"handler,omitempty" validate:"required_for=generated locationbased typeahead oauth2"`
 	StarlarkHandler *starlark.Function `json:"-"`
 
-	ClientID              string   `json:"client_id,omitempty" validate:"required_for=oauth2"`
+	ClientID              string   `json:"client_id,omitempty"`
 	AuthorizationEndpoint string   `json:"authorization_endpoint,omitempty" validate:"required_for=oauth2"`
 	Scopes                []string `json:"scopes,omitempty" validate:"required_for=oauth2"`
+	PKCE                  bool     `json:"pkce,omitempty"`
 }
 
 // SchemaOption represents an option in a field. For example, an item in a drop

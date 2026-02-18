@@ -31,6 +31,7 @@ t = schema.OAuth2(
     scopes = [
         "read:user",
     ],
+    pkce = True,
 )
 
 assert(t.id == "auth")
@@ -41,6 +42,7 @@ assert(t.handler("{}") == "foobar123")
 assert(t.client_id == "the-oauth2-client-id")
 assert(t.authorization_endpoint == "https://example.com/")
 assert(t.scopes == ["read:user"])
+assert(t.pkce == True)
 
 def main():
     return []
@@ -49,6 +51,50 @@ def main():
 
 func TestOAuth2(t *testing.T) {
 	app, err := runtime.NewApplet("oauth2.star", []byte(oauth2Source))
+	assert.NoError(t, err)
+
+	screens, err := app.Run(context.Background())
+	assert.NoError(t, err)
+	assert.NotNil(t, screens)
+}
+
+var oauth2NoClientIDSource = `
+load("encoding/json.star", "json")
+load("schema.star", "schema")
+
+def assert(success, message = None):
+    if not success:
+        fail(message or "assertion failed")
+
+def oauth_handler(params):
+    params = json.decode(params)
+    return "foobar123"
+
+t = schema.OAuth2(
+    id = "auth",
+    name = "GitHub",
+    desc = "Connect your GitHub account.",
+    icon = "github",
+    handler = oauth_handler,
+    authorization_endpoint = "https://example.com/",
+    scopes = [
+        "read:user",
+    ],
+)
+
+assert(t.id == "auth")
+assert(t.name == "GitHub")
+assert(t.client_id == "")
+assert(t.authorization_endpoint == "https://example.com/")
+assert(t.scopes == ["read:user"])
+
+def main():
+    return []
+
+`
+
+func TestOAuth2NoClientID(t *testing.T) {
+	app, err := runtime.NewApplet("oauth2_no_client_id.star", []byte(oauth2NoClientIDSource))
 	assert.NoError(t, err)
 
 	screens, err := app.Run(context.Background())

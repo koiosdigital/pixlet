@@ -27,6 +27,7 @@ func newOAuth2(
 		clientID     starlark.String
 		authEndpoint starlark.String
 		scopes       *starlark.List
+		pkce         starlark.Bool
 	)
 
 	if err := starlark.UnpackArgs(
@@ -37,9 +38,10 @@ func newOAuth2(
 		"desc", &desc,
 		"icon", &icon,
 		"handler", &handler,
-		"client_id", &clientID,
+		"client_id?", &clientID,
 		"authorization_endpoint", &authEndpoint,
 		"scopes", &scopes,
+		"pkce?", &pkce,
 	); err != nil {
 		return nil, fmt.Errorf("unpacking arguments for OAuth2: %s", err)
 	}
@@ -54,6 +56,7 @@ func newOAuth2(
 	s.StarlarkHandler = handler
 	s.ClientID = clientID.GoString()
 	s.AuthorizationEndpoint = authEndpoint.GoString()
+	s.PKCE = bool(pkce)
 	s.starlarkScopes = scopes
 
 	if s.starlarkScopes != nil {
@@ -88,7 +91,7 @@ func (s *OAuth2) AsSchemaField() SchemaField {
 
 func (s *OAuth2) AttrNames() []string {
 	return []string{
-		"id", "name", "desc", "icon", "handler", "client_id", "authorization_endpoint", "scopes",
+		"id", "name", "desc", "icon", "handler", "client_id", "authorization_endpoint", "scopes", "pkce",
 	}
 }
 
@@ -118,6 +121,9 @@ func (s *OAuth2) Attr(name string) (starlark.Value, error) {
 
 	case "scopes":
 		return s.starlarkScopes, nil
+
+	case "pkce":
+		return starlark.Bool(s.PKCE), nil
 
 	default:
 		return nil, nil

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"sync"
 	"time"
 
 	"tidbyt.dev/pixlet/encode"
@@ -30,9 +31,10 @@ type Loader struct {
 	maxDuration      int
 	initialLoad      chan bool
 	timeout          int
-	renderGif        bool
-	displayWidth     int // Display width for rendering (0 = default 64)
-	displayHeight    int // Display height for rendering (0 = default 32)
+	renderGif     bool
+	dimMu         sync.RWMutex
+	displayWidth  int // Display width for rendering (0 = default 64)
+	displayHeight int // Display height for rendering (0 = default 32)
 }
 
 type Update struct {
@@ -151,6 +153,13 @@ func (l *Loader) LoadApplet(config map[string]string) (string, error) {
 	return result.Image, result.Err
 }
 
+// Rerender triggers a re-render using the last config sent via LoadApplet.
+func (l *Loader) Rerender() (string, error) {
+	l.requestedChanges <- true
+	result := <-l.resultsChan
+	return result.Image, result.Err
+}
+
 func (l *Loader) GetSchema() []byte {
 	<-l.initialLoad
 
@@ -171,6 +180,8 @@ func (l *Loader) CallSchemaHandler(ctx context.Context, handlerName, parameter s
 // SetDisplayDimensions sets the display dimensions for rendering.
 // If width or height is 0, the default (64x32) will be used.
 func (l *Loader) SetDisplayDimensions(width, height int) {
+	l.dimMu.Lock()
+	defer l.dimMu.Unlock()
 	l.displayWidth = width
 	l.displayHeight = height
 }
@@ -178,6 +189,8 @@ func (l *Loader) SetDisplayDimensions(width, height int) {
 // GetDisplayDimensions returns the current display dimensions.
 // Returns 0 for either dimension if using defaults.
 func (l *Loader) GetDisplayDimensions() (width, height int) {
+	l.dimMu.RLock()
+	defer l.dimMu.RUnlock()
 	return l.displayWidth, l.displayHeight
 }
 
@@ -198,8 +211,12 @@ func (l *Loader) loadApplet(config map[string]string) (string, error) {
 		fmt.Errorf("timeout after %dms", l.timeout),
 	)
 
-	// Use RunWithConfigAndDimensions for thread-safe rendering with explicit dimensions
-	roots, err := l.applet.RunWithConfigAndDimensions(ctx, config, l.displayWidth, l.displayHeight)
+	// Read dimensions under lock for thread-safe access
+	l.dimMu.RLock()
+	width, height := l.displayWidth, l.displayHeight
+	l.dimMu.RUnlock()
+
+	roots, err := l.applet.RunWithConfigAndDimensions(ctx, config, width, height)
 	if err != nil {
 		return "", fmt.Errorf("error running script: %w", err)
 	}
