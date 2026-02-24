@@ -172,9 +172,9 @@ func (l *Loader) GetSchema() []byte {
 	return b
 }
 
-func (l *Loader) CallSchemaHandler(ctx context.Context, handlerName, parameter string) (string, error) {
+func (l *Loader) CallSchemaHandler(ctx context.Context, handlerName, parameter string, config map[string]string) (string, error) {
 	<-l.initialLoad
-	return l.applet.CallSchemaHandler(ctx, handlerName, parameter)
+	return l.applet.CallSchemaHandler(ctx, handlerName, parameter, config)
 }
 
 // SetDisplayDimensions sets the display dimensions for rendering.

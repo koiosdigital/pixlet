@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import { callGeneratedHandler } from '../../handlers/actions';
+import { updateGenerated } from '../schemaSlice';
 import { set as setError } from '../../errors/errorSlice';
 
 
@@ -21,6 +22,10 @@ export default function Generated({ field }) {
             callGeneratedHandler(field.id, field.handler, config[source.id].value);
         } else if (source.default !== undefined && source.default !== '') {
             callGeneratedHandler(field.id, field.handler, source.default);
+        } else {
+            // Source field was removed (e.g. OAuth2 logout) with no default.
+            // Clear the generated fields so stale UI doesn't linger.
+            dispatch(updateGenerated({ version: '1', schema: [] }));
         }
     }, [config, source])
 

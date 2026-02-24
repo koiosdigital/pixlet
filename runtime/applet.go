@@ -253,18 +253,32 @@ func (a *Applet) RunWithConfigAndDimensions(ctx context.Context, config map[stri
 }
 
 // CallSchemaHandler calls a schema handler, passing it a single
-// string parameter and returning a single string value.
-func (app *Applet) CallSchemaHandler(ctx context.Context, handlerName, parameter string) (result string, err error) {
+// string parameter and returning a single string value. If config is
+// provided and the handler function accepts two parameters, the config
+// is passed as the second argument (an AppletConfig).
+func (app *Applet) CallSchemaHandler(ctx context.Context, handlerName, parameter string, config map[string]string) (result string, err error) {
 	handler, found := app.Schema.Handlers[handlerName]
+	if !found {
+		// Fall back to the base name (after "$") so that handlers
+		// pre-registered via schema.Handler() can be found even when
+		// the browser uses the prefixed name from a Generated schema.
+		if idx := strings.Index(handlerName, "$"); idx >= 0 {
+			handler, found = app.Schema.Handlers[handlerName[idx+1:]]
+		}
+	}
 	if !found {
 		return "", fmt.Errorf("no exported handler named '%s'", handlerName)
 	}
 
-	resultVal, err := app.Call(
-		ctx,
-		handler.Function,
-		starlark.String(parameter),
-	)
+	args := []starlark.Value{starlark.String(parameter)}
+	if handler.Function.NumParams() >= 2 {
+		if config == nil {
+			config = map[string]string{}
+		}
+		args = append(args, AppletConfig(config))
+	}
+
+	resultVal, err := app.Call(ctx, handler.Function, args...)
 	if err != nil {
 		return "", fmt.Errorf("calling schema handler %s: %v", handlerName, err)
 	}
@@ -281,6 +295,13 @@ func (app *Applet) CallSchemaHandler(ctx context.Context, handlerName, parameter
 		sch, err := schema.FromStarlark(resultVal, app.Globals[app.schemaFile])
 		if err != nil {
 			return "", err
+		}
+
+		// Merge handlers from the returned schema into the app's handler map
+		// so subsequent CallSchemaHandler calls can find nested handlers
+		// (e.g., LocationBased handlers returned by a Generated field).
+		for name, handler := range sch.Handlers {
+			app.Schema.Handlers[name] = handler
 		}
 
 		s, err := json.Marshal(sch)

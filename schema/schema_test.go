@@ -659,11 +659,11 @@ def main():
 	assert.NoError(t, err)
 
 	// Handlers are not identified by ID
-	_, err = app.CallSchemaHandler(context.Background(), "generatedid", "foobar")
+	_, err = app.CallSchemaHandler(context.Background(), "generatedid", "foobar", nil)
 	assert.Error(t, err)
 
 	// They're identified by function name
-	jsonSchema, err := app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "foobar")
+	jsonSchema, err := app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "foobar", nil)
 	assert.NoError(t, err)
 
 	var s schema.Schema
@@ -719,10 +719,10 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	_, err = app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "win")
+	_, err = app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "win", nil)
 	assert.NoError(t, err)
 
-	_, err = app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "fail")
+	_, err = app.CallSchemaHandler(context.Background(), "generatedid$generate_schema", "fail", nil)
 	assert.Error(t, err)
 }
 
@@ -808,7 +808,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	stringValue, err := app.CallSchemaHandler(context.Background(), "locationbasedid$handle_location", "fart")
+	stringValue, err := app.CallSchemaHandler(context.Background(), "locationbasedid$handle_location", "fart", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "[{\"display\":\"\",\"text\":\"Your only option is\",\"value\":\"fart\"}]", stringValue)
 }
@@ -836,7 +836,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	_, err = app.CallSchemaHandler(context.Background(), "handle_location", "fart")
+	_, err = app.CallSchemaHandler(context.Background(), "handle_location", "fart", nil)
 	assert.Error(t, err)
 }
 
@@ -863,7 +863,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	stringValue, err := app.CallSchemaHandler(context.Background(), "typeaheadid$handle_typeahead", "farts")
+	stringValue, err := app.CallSchemaHandler(context.Background(), "typeaheadid$handle_typeahead", "farts", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "[{\"display\":\"\",\"text\":\"You searched for\",\"value\":\"farts\"}]", stringValue)
 }
@@ -891,7 +891,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	_, err = app.CallSchemaHandler(context.Background(), "handle_typeahead", "fart")
+	_, err = app.CallSchemaHandler(context.Background(), "handle_typeahead", "fart", nil)
 	assert.Error(t, err)
 }
 
@@ -922,7 +922,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	stringValue, err := app.CallSchemaHandler(context.Background(), "oauth2id$oauth2handler", "farts")
+	stringValue, err := app.CallSchemaHandler(context.Background(), "oauth2id$oauth2handler", "farts", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "a-refresh-token", stringValue)
 }
@@ -954,7 +954,7 @@ def main():
 	app, err := loadApp(code)
 	assert.NoError(t, err)
 
-	_, err = app.CallSchemaHandler(context.Background(), "oauth2handler", "farts")
+	_, err = app.CallSchemaHandler(context.Background(), "oauth2handler", "farts", nil)
 	assert.Error(t, err)
 }
 
@@ -1012,7 +1012,7 @@ def main():
 	assert.NoError(t, err)
 	assert.NotNil(t, app)
 
-	data, err := app.CallSchemaHandler(context.Background(), "get_somethingelse", "win")
+	data, err := app.CallSchemaHandler(context.Background(), "get_somethingelse", "win", nil)
 	assert.NoError(t, err)
 	var options []map[string]string
 	assert.NoError(t, json.Unmarshal([]byte(data), &options))
@@ -1020,7 +1020,7 @@ def main():
 	assert.Equal(t, "hey", options[0]["display"])
 	assert.Equal(t, "ho", options[0]["value"])
 
-	_, err = app.CallSchemaHandler(context.Background(), "get_somethingelse", "fail")
+	_, err = app.CallSchemaHandler(context.Background(), "get_somethingelse", "fail", nil)
 	assert.Error(t, err)
 }
 
@@ -1072,14 +1072,14 @@ def main():
 	assert.NoError(t, err)
 	assert.NotNil(t, app)
 
-	data, err := app.CallSchemaHandler(context.Background(), "generatedid$build_boroughs", "false")
+	data, err := app.CallSchemaHandler(context.Background(), "generatedid$build_boroughs", "false", nil)
 	assert.NoError(t, err)
 	var schema schema.Schema
 	assert.NoError(t, json.Unmarshal([]byte(data), &schema))
 	assert.Equal(t, "1", schema.Version)
 	assert.Equal(t, 0, len(schema.Fields))
 
-	data, err = app.CallSchemaHandler(context.Background(), "generatedid$build_boroughs", "true")
+	data, err = app.CallSchemaHandler(context.Background(), "generatedid$build_boroughs", "true", nil)
 	assert.NoError(t, err)
 	assert.NoError(t, json.Unmarshal([]byte(data), &schema))
 	assert.Equal(t, 1, len(schema.Fields))
@@ -1143,7 +1143,7 @@ def main():
 	assert.NoError(t, err)
 	assert.NotNil(t, app)
 
-	data, err := app.CallSchemaHandler(context.Background(), "generatedid$get_station_selector", "true")
+	data, err := app.CallSchemaHandler(context.Background(), "generatedid$get_station_selector", "true", nil)
 	assert.NoError(t, err)
 	var s schema.Schema
 	assert.NoError(t, json.Unmarshal([]byte(data), &s))
@@ -1152,13 +1152,92 @@ def main():
 	assert.Equal(t, "locationbased", s.Fields[0].Type)
 	assert.Equal(t, "station$get_stations", s.Fields[0].Handler)
 
-	data, err = app.CallSchemaHandler(context.Background(), "get_stations", "locationdata")
+	data, err = app.CallSchemaHandler(context.Background(), "get_stations", "locationdata", nil)
 	var options []schema.SchemaOption
 	assert.NoError(t, err)
 	assert.NoError(t, json.Unmarshal([]byte(data), &options))
 	assert.Equal(t, 2, len(options))
 	assert.Equal(t, "L08", options[0].Value)
 	assert.Equal(t, "3rd", options[1].Value)
+}
+
+func TestSchemaConfigAwareHandler(t *testing.T) {
+	code := `
+load("schema.star", "schema")
+
+def get_stations(loc, config):
+    user_id = config.get("user_id")
+    if not user_id:
+        user_id = "unknown"
+    return [
+        schema.Option(display="Station for " + user_id, value = "S1"),
+        schema.Option(display="Other Station", value = "S2"),
+    ]
+
+def get_stations_field(user_id):
+    return [
+        schema.LocationBased(
+            id = "station",
+            name = "Station",
+            desc = "Pick a station!",
+            icon = "train",
+            handler = get_stations,
+        ),
+    ]
+
+def get_schema():
+    return schema.Schema(
+        version = "1",
+        fields = [
+            schema.Generated(
+                id = "generated_station",
+                source = "user_id",
+                handler = get_stations_field,
+            ),
+        ],
+        handlers = [
+            schema.Handler(
+                handler = get_stations,
+                type = schema.HandlerType.Options,
+            ),
+        ],
+    )
+
+def main():
+    return None
+`
+
+	app, err := loadApp(code)
+	assert.NoError(t, err)
+	assert.NotNil(t, app)
+
+	// Call the Generated handler — returns a schema with a LocationBased field
+	data, err := app.CallSchemaHandler(context.Background(), "generated_station$get_stations_field", "test_user_42", nil)
+	assert.NoError(t, err)
+	var s schema.Schema
+	assert.NoError(t, json.Unmarshal([]byte(data), &s))
+	assert.Equal(t, 1, len(s.Fields))
+	assert.Equal(t, "locationbased", s.Fields[0].Type)
+	assert.Equal(t, "station$get_stations", s.Fields[0].Handler)
+
+	// Call the nested handler using the prefixed name from the generated schema.
+	// The handler is pre-registered via schema.Handler(), so the fallback from
+	// "station$get_stations" to "get_stations" kicks in even after a reload.
+	config := map[string]string{"user_id": "test_user_42"}
+	data, err = app.CallSchemaHandler(context.Background(), "station$get_stations", `{"lat":40.7,"lng":-74.0}`, config)
+	assert.NoError(t, err)
+	var options []schema.SchemaOption
+	assert.NoError(t, json.Unmarshal([]byte(data), &options))
+	assert.Equal(t, 2, len(options))
+	// Verify the config was passed — handler reads user_id from config, not closure
+	assert.Equal(t, "Station for test_user_42", options[0].Display)
+	assert.Equal(t, "S1", options[0].Value)
+
+	// With no config, handler should gracefully fall back
+	data, err = app.CallSchemaHandler(context.Background(), "get_stations", `{"lat":40.7,"lng":-74.0}`, nil)
+	assert.NoError(t, err)
+	assert.NoError(t, json.Unmarshal([]byte(data), &options))
+	assert.Equal(t, "Station for unknown", options[0].Display)
 }
 
 func TestSchemaWithHandlerInDifferentFile(t *testing.T) {
@@ -1207,7 +1286,7 @@ def main():
 	app, err := runtime.NewAppletFromFS("test", vfs)
 	require.NoError(t, err)
 
-	data, err := app.CallSchemaHandler(context.Background(), "get_stations", "locationdata")
+	data, err := app.CallSchemaHandler(context.Background(), "get_stations", "locationdata", nil)
 	var options []schema.SchemaOption
 	assert.NoError(t, err)
 	assert.NoError(t, json.Unmarshal([]byte(data), &options))

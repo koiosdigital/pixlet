@@ -134,9 +134,23 @@ func FromStarlark(
 				schema.Handlers[name] = schemaHandler
 			}
 		}
+	} else if list, ok := val.(*starlark.List); ok && listContainsFields(list) {
+		// Handle a list of Field objects directly, preserving
+		// StarlarkHandler pointers that would be lost in a JSON
+		// round-trip. This is the common case when a Generated
+		// handler returns a list of schema fields.
+		schema = &Schema{
+			Version:  "1",
+			Handlers: make(map[string]SchemaHandler),
+		}
+		iter := list.Iterate()
+		defer iter.Done()
+		var item starlark.Value
+		for iter.Next(&item) {
+			schema.Fields = append(schema.Fields, item.(Field).AsSchemaField())
+		}
 	} else {
-		// this is a legacy path, where the schema was just a dict
-		// instead of a StarlarkSchema object
+		// legacy path, where the schema was just a dict
 		schemaTree, err := unmarshalStarlark(val)
 		if err != nil {
 			return nil, err
@@ -405,4 +419,14 @@ func validateSchema(schema *Schema) error {
 	}
 
 	return nil
+}
+
+// listContainsFields checks if a Starlark list contains Field objects
+// (as opposed to legacy dicts).
+func listContainsFields(list *starlark.List) bool {
+	if list.Len() == 0 {
+		return false
+	}
+	_, ok := list.Index(0).(Field)
+	return ok
 }

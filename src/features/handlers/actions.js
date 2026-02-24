@@ -13,10 +13,20 @@ function parseErrorMessage(handler, error) {
     return msg;
 }
 
+function getConfigValues() {
+    const config = store.getState().config;
+    const values = {};
+    Object.entries(config).forEach(([id, item]) => {
+        values[id] = item.value;
+    });
+    return values;
+}
+
 export function callHandler(id, handler, param) {
     let data = {
         id: id,
-        param: param
+        param: param,
+        config: getConfigValues()
     }
 
     store.dispatch(loading(true));
@@ -38,7 +48,8 @@ export function callHandler(id, handler, param) {
 export function callGeneratedHandler(id, handler, param) {
     let data = {
         id: id,
-        param: param
+        param: param,
+        config: getConfigValues()
     }
 
     store.dispatch(loading(true));
@@ -60,7 +71,8 @@ export function callGeneratedHandler(id, handler, param) {
 export function callHandlerSetValue(id, handler, param, valueHandler) {
     let data = {
         id: id,
-        param: JSON.stringify(param)
+        param: JSON.stringify(param),
+        config: getConfigValues()
     }
 
     store.dispatch(loading(true));
